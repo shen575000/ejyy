@@ -1,0 +1,8 @@
+# skyupd manifest - Skyworth 8H73 / E6000
+model=8H73
+type=E6000
+reboot=1
+sha256 kernel.img 2bff16a00c48b8844de1246c0c6ad56e5c8e5195cb42f45be12f6ae98d6e7332
+flash kernel kernel.img
+sha256 system_patch.tar.gz e2c79d95321b1d7e6c560e6d629c357f9a469d558da6a2cda8c56cdbdcf52928
+copy /system system_patch.tar.gz
