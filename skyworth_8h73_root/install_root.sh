@@ -19,11 +19,12 @@ echo "== waiting for device =="
 $ADB wait-for-device
 
 echo "== checking device and root state =="
-MODEL=$($ADB shell getprop ro.build.skymodel | tr -d '\r')
-TYPE=$($ADB shell getprop ro.build.skytype | tr -d '\r')
+MODEL=$($ADB shell getprop ro.product.model | tr -d '\r')
+DEVICE=$($ADB shell getprop ro.product.device | tr -d '\r')
 UID=$($ADB shell id -u | tr -d '\r')
-echo "model=$MODEL type=$TYPE uid=$UID"
-[ "$MODEL" = "8H73" ] || { echo "unexpected model, abort"; exit 1; }
+echo "model=$MODEL device=$DEVICE uid=$UID"
+case "$MODEL" in *8H73*) ;; *) echo "unexpected model, abort"; exit 1 ;; esac
+[ "$DEVICE" = "Hi3751V500" ] || { echo "unexpected platform ($DEVICE), abort"; exit 1; }
 [ "$UID" = "0" ] || { echo "adbd is not root; boot_root.img is not active, abort"; exit 1; }
 
 echo "== remount /system rw =="

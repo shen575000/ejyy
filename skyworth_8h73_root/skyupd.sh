@@ -5,6 +5,7 @@
 #   <usb>/skyupd/manifest.txt
 #   <usb>/skyupd/<image or tar.gz files>
 # manifest.txt:
+#   platform=Hi3751V500
 #   model=8H73
 #   type=E6000
 #   sha256 <file> <64-hex>
@@ -27,15 +28,20 @@ if [ ! -x "$BB" ]; then
 fi
 BB="$BB"
 
-MODEL=$(getprop ro.build.skymodel)
-TYPE=$(getprop ro.build.skytype)
-echo "device: model=$MODEL type=$TYPE"
+MODEL=$(getprop ro.product.model)
+DEVICE=$(getprop ro.product.device)
+echo "device: model=$MODEL device=$DEVICE"
 
 find_pkg() {
     for m in /mnt/usb /mnt/usbhost /mnt/usb0 /mnt/usb1 /mnt/udisk \
              /storage/usb0 /storage/usb1 /storage/usbdisk0 \
              /mnt/media_rw/usb0 /mnt/sda1 /mnt/sdb1; do
         [ -d "$m/$PKGNAME" ] && { echo "$m/$PKGNAME"; return 0; }
+        # vold mounts removable media one level below the mount root
+        # (e.g. /mnt/usb/sda1, /mnt/usb/USBDRIVE)
+        for d in "$m"/*; do
+            [ -d "$d/$PKGNAME" ] && { echo "$d/$PKGNAME"; return 0; }
+        done
     done
     return 1
 }
@@ -74,9 +80,13 @@ while IFS= read -r line; do
     case "$line" in
         ''|\#*) continue ;;
         model=*) m=${line#model=}
-                 if [ "$m" != "$MODEL" ]; then echo "FATAL: model mismatch ($m != $MODEL)"; exit 2; fi ;;
-        type=*)  t=${line#type=}
-                 if [ "$t" != "$TYPE" ]; then echo "FATAL: type mismatch ($t != $TYPE)"; exit 2; fi ;;
+                 case "$MODEL" in
+                     *"$m"*) ;;
+                     *) echo "FATAL: model mismatch ($m not in $MODEL)"; exit 2 ;;
+                 esac ;;
+        platform=*) p=${line#platform=}
+                 if [ "$p" != "$DEVICE" ]; then echo "FATAL: platform mismatch ($p != $DEVICE)"; exit 2; fi ;;
+        type=*)  echo "tag: type=${line#type=}" ;;
         reboot=*) REBOOT=${line#reboot=} ;;
         sha256\ *)
                  set -- $line
@@ -113,7 +123,7 @@ while IFS= read -r line; do
                 /system) mount -o rw,remount /system 2>/dev/null ;;
             esac
             echo "copy $FILE -> $DEST"
-            if ! $BB tar -xzf "$PKG/$FILE" -C "$DEST"; then
+            if ! $BB tar -C "$DEST" -xzf "$PKG/$FILE"; then
                 echo "FATAL: extract failed for $FILE"; exit 4
             fi
             ;;

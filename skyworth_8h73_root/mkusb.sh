@@ -27,6 +27,7 @@ mkdir -p "$PKG"
 
 {
     echo "# skyupd manifest - Skyworth 8H73 / E6000"
+    echo "platform=Hi3751V500"
     echo "model=8H73"
     echo "type=E6000"
     echo "reboot=$REBOOT"
